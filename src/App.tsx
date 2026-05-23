@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Game } from './hooks/useGames';
 
 const CATEGORIES = ["All", "PC games", "Xbox Games", "PS5 games", "Mobiles games", "Lust Games"] as const;
+const STATUSES = ["All", "Completed", "Ongoing", "Abandoned", "Wishlist"] as const;
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -20,6 +21,7 @@ export default function App() {
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [activeStatus, setActiveStatus] = useState<string>('All');
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -68,9 +70,11 @@ export default function App() {
     }
   };
 
-  const filteredGames = activeCategory === 'All' 
-    ? games 
-    : games.filter(g => g.category === activeCategory);
+  const filteredGames = games.filter(g => {
+    const matchCat = activeCategory === 'All' ? true : g.category === activeCategory;
+    const matchStatus = activeStatus === 'All' ? true : (g.status || 'Completed') === activeStatus;
+    return matchCat && matchStatus;
+  });
 
   if (authLoading || gamesLoading) {
     return (
@@ -133,22 +137,42 @@ export default function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
-        {/* Categories Navigation */}
-        <nav className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-hide">
-          {CATEGORIES.map(category => (
-            <button
-               key={category}
-               onClick={() => setActiveCategory(category)}
-               className={`whitespace-nowrap px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300
-                 ${activeCategory === category 
-                   ? 'bg-stone-200 text-stone-900 shadow-sm' 
-                   : 'bg-stone-800/50 text-stone-400 hover:bg-stone-800 hover:text-stone-200 border border-transparent hover:border-stone-700/50'
-                 }`}
-             >
-               {category}
-             </button>
-          ))}
-        </nav>
+        {/* Navigation Filters */}
+        <div className="flex flex-col gap-4 mb-10">
+          <nav className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <span className="text-xs font-medium text-stone-500 uppercase tracking-wider mr-2 shrink-0">Platform</span>
+            {CATEGORIES.map(category => (
+              <button
+                 key={category}
+                 onClick={() => setActiveCategory(category)}
+                 className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
+                   ${activeCategory === category 
+                     ? 'bg-stone-200 text-stone-900 shadow-sm' 
+                     : 'bg-stone-800/50 text-stone-400 hover:bg-stone-800 hover:text-stone-200 border border-transparent hover:border-stone-700/50'
+                   }`}
+               >
+                 {category}
+               </button>
+            ))}
+          </nav>
+          
+          <nav className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide border-b border-stone-800/60">
+            <span className="text-xs font-medium text-stone-500 uppercase tracking-wider mr-2 shrink-0">Status</span>
+            {STATUSES.map(status => (
+              <button
+                 key={status}
+                 onClick={() => setActiveStatus(status)}
+                 className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
+                   ${activeStatus === status 
+                     ? 'bg-stone-700 text-stone-100 shadow-sm border border-stone-600' 
+                     : 'bg-transparent text-stone-500 hover:text-stone-300'
+                   }`}
+               >
+                 {status}
+               </button>
+            ))}
+          </nav>
+        </div>
 
         {/* Gallery */}
         {filteredGames.length > 0 ? (

@@ -21,7 +21,8 @@ service cloud.firestore {
         && data.visibility == 'public'
         && ( !('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 2048) )
         && ( !('startDate' in data) || data.startDate == null || (data.startDate is string && data.startDate.size() <= 50) )
-        && ( !('endDate' in data) || data.endDate == null || (data.endDate is string && data.endDate.size() <= 50) );
+        && ( !('endDate' in data) || data.endDate == null || (data.endDate is string && data.endDate.size() <= 50) )
+        && ( !('status' in data) || (data.status is string && data.status.size() <= 50) );
     }
 
     match /games/{gameId} {
@@ -32,7 +33,7 @@ service cloud.firestore {
         && isValidId(gameId)
         && isValidGame(incoming())
         // Strict keys
-        && incoming().keys().size() >= 6 && incoming().keys().size() <= 9
+        && incoming().keys().size() >= 6 && incoming().keys().size() <= 10
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
 
@@ -43,7 +44,7 @@ service cloud.firestore {
         && incoming().updatedAt == request.time
         && (
           incoming().diff(existing()).affectedKeys().hasOnly([
-            'title', 'category', 'imageUrl', 'startDate', 'endDate', 'updatedAt'
+            'title', 'category', 'imageUrl', 'startDate', 'endDate', 'status', 'updatedAt'
           ])
         );
 

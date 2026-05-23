@@ -44,6 +44,9 @@ export function GameCard({ game, onDelete }: GameCardProps) {
           <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-stone-900/80 backdrop-blur text-stone-200 border border-stone-700/50 shadow-sm">
             {game.category}
           </span>
+          <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-stone-900/80 backdrop-blur text-stone-200 border border-stone-700/50 shadow-sm">
+            {game.status || 'Completed'}
+          </span>
         </div>
         {isOwner && (
           <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">

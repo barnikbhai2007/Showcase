@@ -14,6 +14,7 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
   const { addGame } = useGames();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<string>('PC games');
+  const [status, setStatus] = useState<string>('Completed');
   const [imageUrl, setImageUrl] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -29,11 +30,13 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
       imageUrl: imageUrl || undefined,
       startDate: unknownDate ? null : startDate || null,
       endDate: unknownDate ? null : endDate || null,
+      status,
     });
     setLoading(false);
     onClose();
     // Reset form
     setTitle('');
+    setStatus('Completed');
     setImageUrl('');
     setStartDate('');
     setEndDate('');
@@ -78,17 +81,33 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-stone-400 mb-1.5">Category *</label>
-                  <select 
-                    value={category}
-                    onChange={e => setCategory(e.target.value)}
-                    className="w-full bg-stone-900/50 border border-stone-700 rounded-xl px-4 py-2.5 text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500 transition-all appearance-none"
-                  >
-                    {CATEGORIES.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-stone-400 mb-1.5">Category *</label>
+                    <select 
+                      value={category}
+                      onChange={e => setCategory(e.target.value)}
+                      className="w-full bg-stone-900/50 border border-stone-700 rounded-xl px-4 py-2.5 text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500 transition-all appearance-none"
+                    >
+                      {CATEGORIES.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-stone-400 mb-1.5">Status *</label>
+                    <select 
+                      value={status}
+                      onChange={e => setStatus(e.target.value)}
+                      className="w-full bg-stone-900/50 border border-stone-700 rounded-xl px-4 py-2.5 text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500 transition-all appearance-none"
+                    >
+                      <option value="Completed">Completed</option>
+                      <option value="Ongoing">Ongoing</option>
+                      <option value="Abandoned">Abandoned</option>
+                      <option value="Wishlist">Wishlist</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>

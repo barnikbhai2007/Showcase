@@ -12,6 +12,7 @@ export interface Game {
   imageUrl?: string;
   startDate?: string | null;
   endDate?: string | null;
+  status?: string;
   visibility: 'public';
   createdAt?: any;
   updatedAt?: any;
