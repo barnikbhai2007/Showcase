@@ -1,0 +1,27 @@
+{
+  "entities": {
+    "game": {
+      "title": "Game",
+      "description": "A game in the user's library.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user who added the game." },
+        "title": { "type": "string", "description": "Title of the game." },
+        "category": { "type": "string", "description": "Category of the game (e.g., PC games, PS5 games, Mobile games, Lust Games)." },
+        "imageUrl": { "type": "string", "description": "URL to the game's image/cover." },
+        "startDate": { "type": ["string", "null"], "description": "When the user started playing." },
+        "endDate": { "type": ["string", "null"], "description": "When the user finished playing." },
+        "visibility": { "type": "string", "description": "Visibility of the game ('public')." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "category", "visibility", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/games/{gameId}": {
+      "schema": { "$ref": "#/entities/game" },
+      "description": "Stores games added by users."
+    }
+  }
+}
