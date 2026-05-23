@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGames } from '../hooks/useGames';
-import { X } from 'lucide-react';
+import { X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const CATEGORIES = ["PC games", "Xbox Games", "PS5 games", "Mobiles games", "Lust Games"] as const;
@@ -20,6 +20,41 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
   const [endDate, setEndDate] = useState('');
   const [unknownDate, setUnknownDate] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (title.length > 2) {
+        setIsSearching(true);
+        try {
+          const res = await fetch(`/api/search?term=${encodeURIComponent(title)}`);
+          if (res.ok) {
+            const data = await res.json();
+            setSearchResults(data.items || []);
+            setShowDropdown(true);
+          }
+        } catch (err) {
+          console.error("Search failed", err);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+        setShowDropdown(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [title]);
+
+  const selectGame = (game: any) => {
+    setTitle(game.name);
+    setImageUrl(game.banner || game.thumbnail || '');
+    setShowDropdown(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +76,8 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
     setStartDate('');
     setEndDate('');
     setUnknownDate(false);
+    setSearchResults([]);
+    setShowDropdown(false);
   };
 
   return (
@@ -69,16 +106,48 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
               </div>
 
               <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-medium text-stone-400 mb-1.5 ">Game Title *</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                    className="w-full bg-stone-900/50 border border-stone-700 rounded-xl px-4 py-2.5 text-stone-100 placeholder-stone-600 focus:outline-none focus:ring-2 focus:ring-stone-500 transition-all"
-                    placeholder="e.g. Elden Ring"
-                  />
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      required 
+                      value={title}
+                      onChange={e => setTitle(e.target.value)}
+                      onFocus={() => { if (searchResults.length > 0) setShowDropdown(true); }}
+                      className="w-full bg-stone-900/50 border border-stone-700 rounded-xl pl-4 pr-10 py-2.5 text-stone-100 placeholder-stone-600 focus:outline-none focus:ring-2 focus:ring-stone-500 transition-all"
+                      placeholder="e.g. Elden Ring"
+                    />
+                    {isSearching && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-stone-500 border-t-stone-300 rounded-full animate-spin" />
+                    )}
+                  </div>
+                  
+                  <AnimatePresence>
+                    {showDropdown && searchResults.length > 0 && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute z-10 w-full mt-2 bg-stone-800 border border-stone-700 rounded-xl shadow-xl overflow-hidden max-h-60 overflow-y-auto"
+                      >
+                        {searchResults.map(game => (
+                          <div 
+                            key={game.id}
+                            onClick={() => selectGame(game)}
+                            className="flex items-center gap-3 p-3 hover:bg-stone-700 cursor-pointer transition-colors border-b border-stone-700/50 last:border-0"
+                          >
+                            {game.thumbnail ? (
+                              <img src={game.thumbnail} alt="" className="w-16 h-8 object-cover rounded" />
+                            ) : (
+                              <div className="w-16 h-8 bg-stone-900 rounded" />
+                            )}
+                            <span className="text-sm font-medium text-stone-200">{game.name}</span>
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

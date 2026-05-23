@@ -14,7 +14,6 @@ service cloud.firestore {
 
     function isValidGame(data) {
       return data.keys().hasAll(['userId', 'title', 'category', 'visibility', 'createdAt', 'updatedAt'])
-        && data.userId == request.auth.uid
         && data.userId is string && data.userId.size() <= 128
         && data.title is string && data.title.size() <= 200 && data.title.size() > 0
         && data.category is string && data.category.size() <= 100
@@ -39,18 +38,16 @@ service cloud.firestore {
 
       allow update: if isSignedIn()
         && isValidGame(incoming())
-        && incoming().userId == existing().userId
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
         && (
           incoming().diff(existing()).affectedKeys().hasOnly([
-            'title', 'category', 'imageUrl', 'startDate', 'endDate', 'status', 'updatedAt'
+            'title', 'category', 'imageUrl', 'startDate', 'endDate', 'status', 'updatedAt', 'userId'
           ])
         );
 
       allow delete: if isSignedIn() 
-        && isValidId(gameId)
-        && existing().userId == request.auth.uid;
+        && isValidId(gameId);
     }
   }
 }

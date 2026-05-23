@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "Barnik Game Showcase",
+  "description": "A cozy game library showcase for PC, Xbox, PS5, Mobile, and top-secret games.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

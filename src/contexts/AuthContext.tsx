@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { auth, googleProvider } from '../lib/firebase';
-import { User, signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../lib/firebase';
+import { User, signInAnonymously, signOut as firebaseSignOut, onAuthStateChanged } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -25,10 +25,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Error signing in with Google", error);
+    const key = prompt("Enter admin passkey");
+    if (key === "brokenaqua@admin") {
+      try {
+        await signInAnonymously(auth);
+      } catch (error) {
+        console.error("Error signing in", error);
+      }
+    } else if (key !== null) {
+      alert("Invalid passkey");
     }
   };
 
@@ -54,3 +59,4 @@ export function useAuth() {
   }
   return context;
 }
+

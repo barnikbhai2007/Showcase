@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { signInAnonymously, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, getDocs, deleteDoc, doc } from 'firebase/firestore';
-import { auth, db, googleProvider } from './lib/firebase';
+import { auth, db } from './lib/firebase';
 import { handleFirestoreError, OperationType } from './lib/firestore-errors';
 import { GameCard } from './components/GameCard';
 import { AddGameModal } from './components/AddGameModal';
@@ -54,10 +54,15 @@ export default function App() {
   }, []);
 
   const handleSignIn = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (err) {
-      console.error("Sign in failed", err);
+    const key = prompt("Enter admin passkey");
+    if (key === "brokenaqua@admin") {
+      try {
+        await signInAnonymously(auth);
+      } catch (err) {
+        console.error("Sign in failed", err);
+      }
+    } else if (key !== null) {
+      alert("Invalid passkey");
     }
   };
 
@@ -127,7 +132,7 @@ export default function App() {
                   className="flex items-center gap-2 bg-stone-800 border border-stone-700 hover:bg-stone-700 text-stone-200 px-5 py-2 rounded-full font-medium transition-all text-sm shadow-sm"
                 >
                   <LogIn className="w-4 h-4" />
-                  <span>Sign In</span>
+                  <span>Admin Access</span>
                 </button>
               )}
             </div>
