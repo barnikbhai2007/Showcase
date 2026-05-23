@@ -21,33 +21,31 @@ service cloud.firestore {
         && ( !('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 2048) )
         && ( !('startDate' in data) || data.startDate == null || (data.startDate is string && data.startDate.size() <= 50) )
         && ( !('endDate' in data) || data.endDate == null || (data.endDate is string && data.endDate.size() <= 50) )
-        && ( !('status' in data) || (data.status is string && data.status.size() <= 50) );
+        && ( !('status' in data) || (data.status is string && data.status.size() <= 50) )
+        && ( !('rating' in data) || data.rating == null || data.rating is number );
     }
 
     match /games/{gameId} {
       allow read: if true;
-      allow list: if resource.data.visibility == 'public';
+      allow list: if true;
       
-      allow create: if isSignedIn()
-        && isValidId(gameId)
+      allow create: if isValidId(gameId)
         && isValidGame(incoming())
         // Strict keys
-        && incoming().keys().size() >= 6 && incoming().keys().size() <= 10
+        && incoming().keys().size() >= 6 && incoming().keys().size() <= 11
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
 
-      allow update: if isSignedIn()
-        && isValidGame(incoming())
+      allow update: if isValidGame(incoming())
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
         && (
           incoming().diff(existing()).affectedKeys().hasOnly([
-            'title', 'category', 'imageUrl', 'startDate', 'endDate', 'status', 'updatedAt', 'userId'
+            'title', 'category', 'imageUrl', 'startDate', 'endDate', 'status', 'rating', 'updatedAt', 'userId'
           ])
         );
 
-      allow delete: if isSignedIn() 
-        && isValidId(gameId);
+      allow delete: if isValidId(gameId);
     }
   }
 }

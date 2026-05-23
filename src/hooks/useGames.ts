@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, query, where, onSnapshot, documentId, doc, setDoc, deleteDoc, serverTimestamp, orderBy } from 'firebase/firestore';
-import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 
 export interface Game {
@@ -13,6 +12,7 @@ export interface Game {
   startDate?: string | null;
   endDate?: string | null;
   status?: string;
+  rating?: number | null;
   visibility: 'public';
   createdAt?: any;
   updatedAt?: any;
@@ -21,7 +21,6 @@ export interface Game {
 export function useGames() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
   
   useEffect(() => {
     // Anyone can list games that are public
@@ -35,8 +34,26 @@ export function useGames() {
       snapshot.forEach(doc => {
         g.push({ id: doc.id, ...doc.data() } as Game);
       });
-      // Optionally sort by created At client side, or just use what we get
       g.sort((a, b) => {
+        const getSortValue = (d?: string | null) => {
+          if (!d) return 0;
+          const parsed = new Date(stringToDateString(d)).getTime();
+          if (!isNaN(parsed)) return parsed;
+          return 0;
+        };
+
+        const stringToDateString = (d: string) => {
+           if (/^\d{4}$/.test(d)) return `${d}-01-01`;
+           return d;
+        }
+        
+        const dateA = getSortValue(a.endDate || a.startDate);
+        const dateB = getSortValue(b.endDate || b.startDate);
+
+        if (dateA !== dateB) {
+          return dateB - dateA;
+        }
+
         const timeA = a.createdAt?.seconds || 0;
         const timeB = b.createdAt?.seconds || 0;
         return timeB - timeA;
@@ -52,12 +69,11 @@ export function useGames() {
   }, []);
 
   const addGame = async (gameData: Omit<Game, 'id' | 'userId' | 'visibility' | 'createdAt' | 'updatedAt'>) => {
-    if (!user) return;
     try {
       const newGameRef = doc(collection(db, 'games'));
       const newGame = {
         ...gameData,
-        userId: user.uid,
+        userId: 'admin',
         visibility: 'public',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -69,7 +85,6 @@ export function useGames() {
   };
 
   const updateGame = async (gameId: string, gameData: Partial<Game>) => {
-    if (!user) return;
     try {
       const gameRef = doc(db, 'games', gameId);
       await setDoc(gameRef, {
@@ -82,7 +97,6 @@ export function useGames() {
   };
 
   const deleteGame = async (gameId: string) => {
-    if (!user) return;
     try {
       await deleteDoc(doc(db, 'games', gameId));
     } catch (err) {

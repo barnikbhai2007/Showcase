@@ -1,36 +1,64 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGames } from '../hooks/useGames';
 import { X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-const CATEGORIES = ["PC games", "Xbox Games", "PS5 games", "Mobiles games", "Lust Games"] as const;
+const CATEGORIES = ["Steam", "Xbox Games", "PS5 games", "Playstore", "Lust Games"] as const;
 
 interface AddGameModalProps {
   isOpen: boolean;
   onClose: () => void;
+  gameToEdit?: any;
 }
 
-export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
-  const { addGame } = useGames();
+export function AddGameModal({ isOpen, onClose, gameToEdit }: AddGameModalProps) {
+  const { addGame, updateGame } = useGames();
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<string>('PC games');
+  const [category, setCategory] = useState<string>('Steam');
   const [status, setStatus] = useState<string>('Completed');
   const [imageUrl, setImageUrl] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [rating, setRating] = useState<string>('');
   const [unknownDate, setUnknownDate] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  
+  useEffect(() => {
+    if (gameToEdit && isOpen) {
+      setTitle(gameToEdit.title || '');
+      let mappedCategory = gameToEdit.category || 'Steam';
+      if (mappedCategory === 'PC games') mappedCategory = 'Steam';
+      if (mappedCategory === 'Mobiles games') mappedCategory = 'Playstore';
+      setCategory(mappedCategory);
+      setStatus(gameToEdit.status || 'Completed');
+      setImageUrl(gameToEdit.imageUrl || '');
+      setStartDate(gameToEdit.startDate || '');
+      setEndDate(gameToEdit.endDate || '');
+      setRating(gameToEdit.rating ? gameToEdit.rating.toString() : '');
+      setUnknownDate(gameToEdit.startDate === null && gameToEdit.endDate === null);
+    } else if (isOpen) {
+      setTitle('');
+      setCategory('Steam');
+      setStatus('Completed');
+      setImageUrl('');
+      setStartDate('');
+      setEndDate('');
+      setRating('');
+      setUnknownDate(false);
+    }
+  }, [gameToEdit, isOpen]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
-      if (title.length > 2) {
+      // Avoid searching if we are editing an existing item and the title hasn't significantly changed to warrant a search dropdown
+      if (title.length > 2 && !gameToEdit) {
         setIsSearching(true);
         try {
-          const res = await fetch(`/api/search?term=${encodeURIComponent(title)}`);
+          const res = await fetch(`/api/search?term=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}`);
           if (res.ok) {
             const data = await res.json();
             setSearchResults(data.items || []);
@@ -48,7 +76,7 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [title]);
+  }, [title, gameToEdit, category]);
 
   const selectGame = (game: any) => {
     setTitle(game.name);
@@ -59,14 +87,31 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await addGame({
-      title,
-      category,
-      imageUrl: imageUrl || undefined,
-      startDate: unknownDate ? null : startDate || null,
-      endDate: unknownDate ? null : endDate || null,
-      status,
-    });
+    
+    const parsedRating = rating ? parseInt(rating, 10) : null;
+    
+    if (gameToEdit) {
+       await updateGame(gameToEdit.id, {
+          title,
+          category,
+          imageUrl: imageUrl ? imageUrl.trim() : '',
+          startDate: unknownDate ? null : startDate || null,
+          endDate: unknownDate ? null : endDate || null,
+          status,
+          rating: parsedRating,
+       });
+    } else {
+       await addGame({
+         title,
+         category,
+         imageUrl: imageUrl ? imageUrl.trim() : '',
+         startDate: unknownDate ? null : startDate || null,
+         endDate: unknownDate ? null : endDate || null,
+         status,
+         rating: parsedRating,
+       });
+    }
+    
     setLoading(false);
     onClose();
     // Reset form
@@ -75,6 +120,7 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
     setImageUrl('');
     setStartDate('');
     setEndDate('');
+    setRating('');
     setUnknownDate(false);
     setSearchResults([]);
     setShowDropdown(false);
@@ -88,26 +134,27 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-stone-900/80 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-stone-900/60 backdrop-blur-sm"
             onClick={onClose}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 py-16 overflow-y-auto pointer-events-none">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="w-full max-w-md bg-stone-800 border border-stone-700 rounded-3xl shadow-2xl overflow-hidden pointer-events-auto mt-auto mb-auto"
-            >
-              <div className="flex justify-between items-center p-6 border-b border-stone-700/50">
-                <h2 className="text-2xl font-serif">Add to Library</h2>
-                <button onClick={onClose} className="p-2 -mr-2 text-stone-400 hover:text-stone-200 hover:bg-stone-700/50 rounded-full transition-colors">
+          <div className="fixed inset-0 z-50 overflow-y-auto pointer-events-none">
+            <div className="flex min-h-full items-start justify-center p-4 py-8">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 10, rotate: -1 }}
+                animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10, rotate: 1 }}
+                className="w-full max-w-md bg-[#efe9d8] border-2 border-stone-900 rounded-sm shadow-[8px_8px_0px_#27272a] pointer-events-auto my-auto font-mono"
+              >
+              <div className="flex justify-between items-center p-6 border-b-2 border-stone-900 border-dashed">
+                <h2 className="text-xl font-bold uppercase tracking-widest text-stone-900">Add Record</h2>
+                <button onClick={onClose} className="p-2 -mr-2 text-stone-600 hover:text-stone-900 hover:bg-stone-300 rounded-sm transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="p-6 space-y-5">
                 <div className="relative">
-                  <label className="block text-sm font-medium text-stone-400 mb-1.5 ">Game Title *</label>
+                  <label className="block text-xs font-bold text-stone-800 uppercase tracking-widest mb-1.5 ">Title *</label>
                   <div className="relative">
                     <input 
                       type="text" 
@@ -115,11 +162,11 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
                       value={title}
                       onChange={e => setTitle(e.target.value)}
                       onFocus={() => { if (searchResults.length > 0) setShowDropdown(true); }}
-                      className="w-full bg-stone-900/50 border border-stone-700 rounded-xl pl-4 pr-10 py-2.5 text-stone-100 placeholder-stone-600 focus:outline-none focus:ring-2 focus:ring-stone-500 transition-all"
-                      placeholder="e.g. Elden Ring"
+                      className="w-full bg-[#f4ebd8] border-2 border-stone-900 rounded-sm pl-4 pr-10 py-2.5 text-stone-900 placeholder-stone-500 focus:outline-none focus:ring-0 focus:border-stone-900 transition-all shadow-[inset_2px_2px_0px_#00000020] uppercase"
+                      placeholder="ENTER TITLE"
                     />
                     {isSearching && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-stone-500 border-t-stone-300 rounded-full animate-spin" />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-stone-500 border-t-stone-800 rounded-full animate-spin" />
                     )}
                   </div>
                   
@@ -129,20 +176,20 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute z-10 w-full mt-2 bg-stone-800 border border-stone-700 rounded-xl shadow-xl overflow-hidden max-h-60 overflow-y-auto"
+                        className="absolute z-10 w-full mt-2 bg-[#f4ebd8] border-2 border-stone-900 rounded-sm shadow-[4px_4px_0px_#27272a] overflow-hidden max-h-60 overflow-y-auto"
                       >
                         {searchResults.map(game => (
                           <div 
                             key={game.id}
                             onClick={() => selectGame(game)}
-                            className="flex items-center gap-3 p-3 hover:bg-stone-700 cursor-pointer transition-colors border-b border-stone-700/50 last:border-0"
+                            className="flex items-center gap-3 p-3 hover:bg-[#e6ddc5] cursor-pointer transition-colors border-b border-stone-400 last:border-0"
                           >
                             {game.thumbnail ? (
-                              <img src={game.thumbnail} alt="" className="w-16 h-8 object-cover rounded" />
+                              <img src={game.thumbnail} alt="" className="w-16 h-8 object-cover rounded-sm border border-stone-900" />
                             ) : (
-                              <div className="w-16 h-8 bg-stone-900 rounded" />
+                              <div className="w-16 h-8 bg-[#e6ddc5] rounded-sm border border-stone-900" />
                             )}
-                            <span className="text-sm font-medium text-stone-200">{game.name}</span>
+                            <span className="text-sm font-bold text-stone-900 uppercase">{game.name}</span>
                           </div>
                         ))}
                       </motion.div>
@@ -152,11 +199,11 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-stone-400 mb-1.5">Category *</label>
+                    <label className="block text-xs font-bold text-stone-800 uppercase tracking-widest mb-1.5">Division *</label>
                     <select 
                       value={category}
                       onChange={e => setCategory(e.target.value)}
-                      className="w-full bg-stone-900/50 border border-stone-700 rounded-xl px-4 py-2.5 text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500 transition-all appearance-none"
+                      className="w-full bg-[#f4ebd8] border-2 border-stone-900 rounded-sm px-4 py-2.5 text-stone-900 focus:outline-none focus:ring-0 focus:border-stone-900 transition-all appearance-none shadow-[inset_2px_2px_0px_#00000020] uppercase text-sm"
                     >
                       {CATEGORIES.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -165,11 +212,11 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-stone-400 mb-1.5">Status *</label>
+                    <label className="block text-xs font-bold text-stone-800 uppercase tracking-widest mb-1.5">Clearance *</label>
                     <select 
                       value={status}
                       onChange={e => setStatus(e.target.value)}
-                      className="w-full bg-stone-900/50 border border-stone-700 rounded-xl px-4 py-2.5 text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500 transition-all appearance-none"
+                      className="w-full bg-[#f4ebd8] border-2 border-stone-900 rounded-sm px-4 py-2.5 text-stone-900 focus:outline-none focus:ring-0 focus:border-stone-900 transition-all appearance-none shadow-[inset_2px_2px_0px_#00000020] uppercase text-sm"
                     >
                       <option value="Completed">Completed</option>
                       <option value="Ongoing">Ongoing</option>
@@ -179,26 +226,40 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-stone-400 mb-1.5 ">Cover Image URL (Optional)</label>
-                  <input 
-                    type="url" 
-                    value={imageUrl}
-                    onChange={e => setImageUrl(e.target.value)}
-                    className="w-full bg-stone-900/50 border border-stone-700 rounded-xl px-4 py-2.5 text-stone-100 placeholder-stone-600 focus:outline-none focus:ring-2 focus:ring-stone-500 transition-all"
-                    placeholder="https://..."
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-800 uppercase tracking-widest mb-1.5 ">Image Reference (Optional)</label>
+                    <input 
+                      type="text" 
+                      value={imageUrl}
+                      onChange={e => setImageUrl(e.target.value)}
+                      className="w-full bg-[#f4ebd8] border-2 border-stone-900 rounded-sm px-4 py-2.5 text-stone-900 placeholder-stone-500 focus:outline-none focus:ring-0 focus:border-stone-900 transition-all shadow-[inset_2px_2px_0px_#00000020] text-sm"
+                      placeholder="IMAGE URL..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-800 uppercase tracking-widest mb-1.5 ">Rating (0-1000)</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      max="1000"
+                      value={rating}
+                      onChange={e => setRating(e.target.value)}
+                      className="w-full bg-[#f4ebd8] border-2 border-stone-900 rounded-sm px-4 py-2.5 text-stone-900 placeholder-stone-500 focus:outline-none focus:ring-0 focus:border-stone-900 transition-all shadow-[inset_2px_2px_0px_#00000020] text-sm"
+                      placeholder="e.g. 850"
+                    />
+                  </div>
                 </div>
 
-                <div className="pt-2">
-                  <label className="flex items-center gap-3 cursor-pointer mb-4 text-stone-300">
+                <div className="pt-4 border-t-2 border-stone-900 border-dashed">
+                  <label className="flex items-center gap-3 cursor-pointer mb-4 text-stone-800 font-bold uppercase tracking-widest text-xs">
                     <input 
                       type="checkbox" 
                       checked={unknownDate}
                       onChange={e => setUnknownDate(e.target.checked)}
-                      className="w-5 h-5 rounded border-stone-600 bg-stone-900 text-stone-500 focus:ring-stone-500 focus:ring-offset-stone-800"
+                      className="w-5 h-5 rounded-sm border-2 border-stone-900 bg-[#f4ebd8] text-stone-900 focus:ring-0 focus:ring-offset-0"
                     />
-                    <span>I don't remember when I played this</span>
+                    <span>[DATE REDACTED]</span>
                   </label>
 
                   <AnimatePresence>
@@ -207,27 +268,29 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="grid grid-cols-2 gap-4 overflow-hidden"
+                        className="overflow-hidden"
                       >
-                        <div>
-                          <label className="block text-sm font-medium text-stone-400 mb-1.5">Start Date</label>
-                          <input 
-                            type="date" 
-                            value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
-                            className="w-full bg-stone-900/50 border border-stone-700 rounded-xl px-4 py-2 text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500 transition-all color-scheme-dark"
-                            style={{ colorScheme: 'dark' }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-stone-400 mb-1.5">End Date</label>
-                          <input 
-                            type="date" 
-                            value={endDate}
-                            onChange={e => setEndDate(e.target.value)}
-                            className="w-full bg-stone-900/50 border border-stone-700 rounded-xl px-4 py-2 text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-500 transition-all"
-                            style={{ colorScheme: 'dark' }}
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-bold text-stone-800 uppercase tracking-widest mb-1.5">START DATE</label>
+                            <input 
+                              type="text" 
+                              value={startDate}
+                              onChange={e => setStartDate(e.target.value)}
+                              placeholder="YYYY-MM-DD or YYYY"
+                              className="w-full bg-[#f4ebd8] border-2 border-stone-900 rounded-sm px-4 py-2 text-stone-900 focus:outline-none focus:ring-0 focus:border-stone-900 transition-all shadow-[inset_2px_2px_0px_#00000020] text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-stone-800 uppercase tracking-widest mb-1.5">END DATE</label>
+                            <input 
+                              type="text" 
+                              value={endDate}
+                              onChange={e => setEndDate(e.target.value)}
+                              placeholder="YYYY-MM-DD or YYYY"
+                              className="w-full bg-[#f4ebd8] border-2 border-stone-900 rounded-sm px-4 py-2 text-stone-900 focus:outline-none focus:ring-0 focus:border-stone-900 transition-all shadow-[inset_2px_2px_0px_#00000020] text-sm"
+                            />
+                          </div>
                         </div>
                       </motion.div>
                     )}
@@ -238,13 +301,14 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
                   <button 
                     type="submit" 
                     disabled={loading || !title || !category}
-                    className="w-full bg-stone-100 text-stone-900 hover:bg-white font-medium py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-stone-900 text-[#efe9d8] hover:bg-stone-800 font-bold uppercase tracking-widest py-3 rounded-sm transition-all shadow-[2px_2px_0px_#27272a] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_#27272a] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none text-sm"
                   >
-                    {loading ? 'Adding...' : 'Add to Collection'}
+                    {loading ? 'ARCHIVING...' : 'UPLOAD AND COMMIT CHANGES'}
                   </button>
                 </div>
               </form>
             </motion.div>
+            </div>
           </div>
         </>
       )}
