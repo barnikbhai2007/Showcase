@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGames } from '../hooks/useGames';
-import { X, Search } from 'lucide-react';
+import { X, Search, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const CATEGORIES = ["Steam", "Xbox Games", "PS5 games", "Playstore", "Lust Games"] as const;
@@ -82,6 +82,42 @@ export function AddGameModal({ isOpen, onClose, gameToEdit }: AddGameModalProps)
     setTitle(game.name);
     setImageUrl(game.banner || game.thumbnail || '');
     setShowDropdown(false);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          setImageUrl(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.src = reader.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -229,13 +265,19 @@ export function AddGameModal({ isOpen, onClose, gameToEdit }: AddGameModalProps)
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-stone-800 uppercase tracking-widest mb-1.5 ">Image Reference (Optional)</label>
-                    <input 
-                      type="text" 
-                      value={imageUrl}
-                      onChange={e => setImageUrl(e.target.value)}
-                      className="w-full bg-[#f4ebd8] border-2 border-stone-900 rounded-sm px-4 py-2.5 text-stone-900 placeholder-stone-500 focus:outline-none focus:ring-0 focus:border-stone-900 transition-all shadow-[inset_2px_2px_0px_#00000020] text-sm"
-                      placeholder="IMAGE URL..."
-                    />
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={imageUrl}
+                        onChange={e => setImageUrl(e.target.value)}
+                        className="w-full bg-[#f4ebd8] border-2 border-stone-900 rounded-sm px-4 py-2.5 text-stone-900 placeholder-stone-500 focus:outline-none focus:ring-0 focus:border-stone-900 transition-all shadow-[inset_2px_2px_0px_#00000020] text-sm"
+                        placeholder="IMAGE URL..."
+                      />
+                      <label className="cursor-pointer bg-stone-900 text-[#efe9d8] px-3 rounded-sm border-2 border-stone-900 hover:bg-stone-800 flex items-center justify-center transition-all shadow-[2px_2px_0px_#27272a] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_#27272a]">
+                        <Upload className="w-4 h-4" />
+                        <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                      </label>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-stone-800 uppercase tracking-widest mb-1.5 ">Rating (0-1000)</label>

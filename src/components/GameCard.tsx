@@ -94,7 +94,6 @@ export function GameCard({ game, onEdit, onDelete, isAdmin, index = 0, isTop10 }
           alt={game.title}
           referrerPolicy="no-referrer"
           onError={(e) => {
-            console.error("Image failed to load:", displayImage);
             e.currentTarget.onerror = null;
             e.currentTarget.src = 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?w=600&h=400&fit=crop';
           }}

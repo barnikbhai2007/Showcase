@@ -18,7 +18,7 @@ service cloud.firestore {
         && data.title is string && data.title.size() <= 200 && data.title.size() > 0
         && data.category is string && data.category.size() <= 100
         && data.visibility == 'public'
-        && ( !('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 2048) )
+        && ( !('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1048487) )
         && ( !('startDate' in data) || data.startDate == null || (data.startDate is string && data.startDate.size() <= 50) )
         && ( !('endDate' in data) || data.endDate == null || (data.endDate is string && data.endDate.size() <= 50) )
         && ( !('status' in data) || (data.status is string && data.status.size() <= 50) )
